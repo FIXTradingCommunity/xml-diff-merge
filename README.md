@@ -9,7 +9,7 @@ The utilities work on any XML files; they are not XML-schema aware. Element orde
 ### XML Patch Operations
 These utilities make use of a difference format conformant to standard "An Extensible Markup Language (XML) Patch Operations Framework Utilizing XML Path Language (XPath) Selectors", [IETF RFC 5261](https://tools.ietf.org/html/rfc5261). Another benefit of these utilities, aside from editing Orchestra files, is that they can be used for HTTP PATCH operations with XML payloads.
 
-The path format has no way to show moves. If element order is considered, then a move will be displayed as an add and remove.
+The patch format has no way to show moves. If element order is considered, then a move will be displayed as an add and remove.
 
 ## Difference
 

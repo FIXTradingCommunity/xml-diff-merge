@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -59,7 +60,7 @@ public class PatchOpsListener implements XmlDiffListener {
    */
   public PatchOpsListener(OutputStream out)
       throws IOException, ParserConfigurationException, TransformerConfigurationException {
-    writer = new OutputStreamWriter(out, Charset.forName("UTF-8"));
+    writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
 
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     dbFactory.setNamespaceAware(true);

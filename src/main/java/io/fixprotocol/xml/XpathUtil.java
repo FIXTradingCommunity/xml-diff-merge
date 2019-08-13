@@ -34,7 +34,7 @@ final class XpathUtil {
   public static String getAttribute(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    if (fields == null || fields.length == 0) {
+    if (fields.length == 0) {
       return "";
     }
     if (fields[fields.length - 1].startsWith("@")) {
@@ -47,7 +47,7 @@ final class XpathUtil {
   public static String getElementLocalName(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    if (fields == null || fields.length == 0) {
+    if (fields.length == 0) {
       return "";
     }
     for (int i = fields.length - 1; i >= 0; i--) {
@@ -64,7 +64,7 @@ final class XpathUtil {
   public static String getElementPredicate(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    if (fields == null || fields.length == 0) {
+    if (fields.length == 0) {
       return "";
     }
     for (int i = fields.length - 1; i >= 0; i--) {
@@ -196,7 +196,7 @@ final class XpathUtil {
   public static String getParentLocalName(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    if (fields == null || fields.length == 0) {
+    if (fields.length == 0) {
       return "";
     }
     boolean elementFound = false;
@@ -218,7 +218,7 @@ final class XpathUtil {
   public static String getParentPredicate(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    if (fields == null || fields.length == 0) {
+    if (fields.length == 0) {
       return "";
     }
     boolean elementFound = false;
@@ -244,7 +244,7 @@ final class XpathUtil {
   public static boolean isAttribute(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
     String[] fields = xpath.split("/");
-    return !(fields == null || fields.length == 0) && fields[fields.length - 1].startsWith("@");
+    return !(fields.length == 0) && fields[fields.length - 1].startsWith("@");
   }
   
   

@@ -144,7 +144,7 @@ public class XmlDiff {
     Objects.requireNonNull(is1, "First input stream cannot be null");
     Objects.requireNonNull(is2, "Second input stream cannot be null");
 
-    try {
+    try (is1; is2) {
       final Document doc1 = parse(is1);
       final Element root1 = doc1.getDocumentElement();
       final Document doc2 = parse(is2);
@@ -152,13 +152,10 @@ public class XmlDiff {
 
       if (!diffElements(root1, root2)) {
         System.err.format("Not comparing same root nodes; %s %s%n", XpathUtil.getFullXPath(root1),
-            XpathUtil.getFullXPath(root2));
+                XpathUtil.getFullXPath(root2));
         System.exit(1);
       }
       listener.close();
-    } finally {
-      is1.close();
-      is2.close();
     }
   }
 

@@ -42,7 +42,7 @@ public class RepositoryDiffReporter extends XmlDiff {
     super();
   }
 
-  class HtmlDiffListener implements XmlDiffListener {
+  static class HtmlDiffListener implements XmlDiffListener {
 
     private boolean headerGenerated = false;
     private boolean firstRow = true;
@@ -181,10 +181,10 @@ public class RepositoryDiffReporter extends XmlDiff {
     } else {
       RepositoryDiffReporter tool = new RepositoryDiffReporter();
       try (
-          HtmlDiffListener aListener = tool.new HtmlDiffListener(
-              args.length > 2 ? new FileOutputStream(args[2]) : System.out);
-          InputStream is1 = new FileInputStream(args[0]);
-          InputStream is2 = new FileInputStream(args[1])) {
+              HtmlDiffListener aListener = new HtmlDiffListener(
+                      args.length > 2 ? new FileOutputStream(args[2]) : System.out);
+              InputStream is1 = new FileInputStream(args[0]);
+              InputStream is2 = new FileInputStream(args[1])) {
         tool.setListener(aListener);
         tool.diff(is1, is2);
       }

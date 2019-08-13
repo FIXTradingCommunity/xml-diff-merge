@@ -37,7 +37,7 @@ public class RepositoryDiffReporterTest {
   @BeforeEach
   public void setUp() throws Exception {
     tool = new RepositoryDiffReporter();
-    RepositoryDiffReporter.HtmlDiffListener aListener = tool.new HtmlDiffListener(new FileOutputStream(DIFF_FILENAME));
+    RepositoryDiffReporter.HtmlDiffListener aListener = new RepositoryDiffReporter.HtmlDiffListener(new FileOutputStream(DIFF_FILENAME));
     tool.setListener(aListener);
   }
 
