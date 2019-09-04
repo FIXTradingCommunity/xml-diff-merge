@@ -151,6 +151,7 @@
 						</configuration>
 					</execution>
 					<execution>
+						<!-- due to an apparent plugin bug, must run after clean -->
 						<id>create-runtime-image</id>
 						<phase>install</phase>
 						<goals>
@@ -167,6 +168,11 @@
 							<outputDirectory>
 								${project.build.directory}/jlink-image
 							</outputDirectory>
+							<!-- apparently only one launcher can be provided, so merge requires command line -->
+							<launcher>
+								<name>xmldiff</name>
+								<module>diff.merge/io.fixprotocol.xml.XmlDiff</module>
+							</launcher>
 						</configuration>
 					</execution>
 				</executions>
