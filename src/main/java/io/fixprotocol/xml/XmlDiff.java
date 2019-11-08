@@ -34,7 +34,8 @@ import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -81,6 +82,8 @@ public class XmlDiff {
     }
   }
 
+  private static final Logger parentLogger = LogManager.getLogger();
+
   /**
    * Compares two XML files. By default, report is sent to console.
    * 
@@ -111,6 +114,9 @@ public class XmlDiff {
         PatchOpsListener aListener = new PatchOpsListener(out);
         tool.setListener(aListener);
         tool.diff(is1, is2);
+      } catch (Exception e) {
+        parentLogger.fatal("XmlDiff failed", e);
+        throw e;
       }
     }
   }
@@ -151,11 +157,12 @@ public class XmlDiff {
       final Element root2 = doc2.getDocumentElement();
 
       if (!diffElements(root1, root2)) {
-        System.err.format("Not comparing same root nodes; %s %s%n", XpathUtil.getFullXPath(root1),
-                XpathUtil.getFullXPath(root2));
+        parentLogger.fatal("XmlDiff failed; not comparing same root nodes; {} {}",
+            XpathUtil.getFullXPath(root1), XpathUtil.getFullXPath(root2));
         System.exit(1);
       }
       listener.close();
+      parentLogger.info("XmlDiff complete");
     }
   }
 
@@ -176,7 +183,7 @@ public class XmlDiff {
     Objects.requireNonNull(is2, "Second input stream cannot be null");
     Objects.requireNonNull(xpathString2, "Second expression cannot be null");
 
-    try {
+    try (is1; is2) {
       XPathFactory factory = XPathFactory.newInstance();
       XPath xpath1 = factory.newXPath();
       Object node1 = xpath1.evaluate(xpathString1, new InputSource(is1), XPathConstants.NODE);
@@ -190,8 +197,6 @@ public class XmlDiff {
       }
     } finally {
       listener.close();
-      is1.close();
-      is2.close();
     }
   }
 
@@ -250,9 +255,9 @@ public class XmlDiff {
 
       switch (difference) {
         case ADD:
-          listener.accept(new Event(ADD,
-              XpathUtil.getFullXPath(attributesArray2.get(index2).getOwnerElement()),
-              attributesArray2.get(index2)));
+          listener.accept(
+              new Event(ADD, XpathUtil.getFullXPath(attributesArray2.get(index2).getOwnerElement()),
+                  attributesArray2.get(index2)));
           index2 = Math.min(index2 + 1, attributesArray2.size());
           isEqual = false;
           break;

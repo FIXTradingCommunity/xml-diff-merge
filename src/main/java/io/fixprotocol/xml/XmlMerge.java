@@ -33,6 +33,8 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -65,11 +67,18 @@ public class XmlMerge {
     if (args.length < 3) {
       usage();
     } else {
-      XmlMerge tool = new XmlMerge();
-      tool.merge(new FileInputStream(args[0]), new FileInputStream(args[1]),
-          new FileOutputStream(args[2]));
+      try {
+        XmlMerge tool = new XmlMerge();
+        tool.merge(new FileInputStream(args[0]), new FileInputStream(args[1]),
+            new FileOutputStream(args[2]));
+      } catch (Exception e) {
+        parentLogger.fatal("XmlMerge failed", e);
+        throw e;
+      }
     }
   }
+
+  private static final Logger parentLogger = LogManager.getLogger();
 
   /**
    * Prints application usage
@@ -92,7 +101,7 @@ public class XmlMerge {
     Objects.requireNonNull(out, "Output stream cannot be null");
 
     final Document baselineDoc = parse(baseline);
-    
+
     // XPath implementation supplied with Java 8 fails so using Saxon
     final XPathFactory factory = new net.sf.saxon.xpath.XPathFactoryImpl();
     final XPath xpathEvaluator = factory.newXPath();
@@ -123,11 +132,12 @@ public class XmlMerge {
           replace(baselineDoc, xpathEvaluator, patchOpElement);
           break;
         default:
-          System.err.format("Invalid operation '%s'%n", tag);
+          throw new IllegalArgumentException(String.format("Invalid merge operation %s", tag));
       }
     }
 
     write(baselineDoc, out);
+    parentLogger.info("XmlMerge complete");
   }
 
   private void add(Document doc, XPath xpathEvaluator, Element patchOpElement)
@@ -136,12 +146,12 @@ public class XmlMerge {
     String attribute = patchOpElement.getAttribute("type");
 
     final XPathExpression compiled = xpathEvaluator.compile(xpathExpression);
-    Node parent =
-        (Node) compiled.evaluate(doc, XPathConstants.NODE);
+    Node parent = (Node) compiled.evaluate(doc, XPathConstants.NODE);
     if (parent == null) {
-      throw new XPathExpressionException("No target for Xpath expression in 'sel' for add; " + xpathExpression);
+      throw new XPathExpressionException(
+          "No target for Xpath expression in 'sel' for add; " + xpathExpression);
     }
-    
+
     if (attribute.length() > 0) {
       String value = null;
       NodeList children = patchOpElement.getChildNodes();
@@ -201,9 +211,10 @@ public class XmlMerge {
 
     Node node = (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
     if (node == null) {
-      throw new XPathExpressionException("No target for Xpath expression in 'sel' for replace; " + xpathExpression);
+      throw new XPathExpressionException(
+          "No target for Xpath expression in 'sel' for replace; " + xpathExpression);
     }
-    
+
     switch (node.getNodeType()) {
       case Node.ELEMENT_NODE:
         NodeList children = node.getChildNodes();

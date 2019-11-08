@@ -5,7 +5,7 @@
 	<groupId>io.fixprotocol.xml</groupId>
 	<artifactId>diff-merge</artifactId>
 	<description>Diff/merge tool for XML files</description>
-	<version>1.4.0-RC5-SNAPSHOT</version>
+	<version>1.4.1-SNAPSHOT</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 
 	<prerequisites>
@@ -16,7 +16,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>11</java.version>
 		<junit.version>5.5.1</junit.version>
-		<saxon.version>9.9.1-4</saxon.version>
+		<log4j.version>2.12.1</log4j.version>
+		<saxon.version>9.9.1-5</saxon.version>
 		<ignoreSigningInformation>true</ignoreSigningInformation>
 	</properties>
 
@@ -62,6 +63,16 @@
 			<groupId>net.sf.saxon</groupId>
 			<artifactId>Saxon-HE</artifactId>
 			<version>${saxon.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>${log4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -121,7 +132,7 @@
 			<plugin>
 				<groupId>org.moditect</groupId>
 				<artifactId>moditect-maven-plugin</artifactId>
-				<version>1.0.0.Beta2</version>
+				<version>1.0.0-SNAPSHOT</version>
 				<executions>
 					<execution>
 						<id>add-module-infos</id>
@@ -168,11 +179,37 @@
 							<outputDirectory>
 								${project.build.directory}/jlink-image
 							</outputDirectory>
-							<!-- apparently only one launcher can be provided, so merge requires command line -->
-							<launcher>
-								<name>xmldiff</name>
-								<module>diff.merge/io.fixprotocol.xml.XmlDiff</module>
-							</launcher>
+							<launchers>
+								<launcher>
+									<name>xmldiff</name>
+									<module>diff.merge</module>
+									<mainClass>io.fixprotocol.xml.XmlDiff</mainClass>
+								</launcher>
+								<launcher>
+									<name>xmlmerge</name>
+									<module>diff.merge</module>
+									<mainClass>io.fixprotocol.xml.XmlMerge</mainClass>
+								</launcher>
+							</launchers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.1.1</version>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/modules</outputDirectory>
+							<overWriteIfNewer>true</overWriteIfNewer>
+							<includeGroupIds>org.apache.logging.log4j</includeGroupIds>
 						</configuration>
 					</execution>
 				</executions>
