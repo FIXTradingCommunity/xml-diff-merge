@@ -16,8 +16,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>11</java.version>
 		<junit.version>5.5.1</junit.version>
-		<log4j.version>2.12.1</log4j.version>
-		<saxon.version>9.9.1-5</saxon.version>
+		<log4j.version>2.13.0</log4j.version>
+		<saxon.version>9.9.1-6</saxon.version>
 		<ignoreSigningInformation>true</ignoreSigningInformation>
 	</properties>
 
@@ -130,72 +130,6 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.moditect</groupId>
-				<artifactId>moditect-maven-plugin</artifactId>
-				<version>1.0.0-SNAPSHOT</version>
-				<executions>
-					<execution>
-						<id>add-module-infos</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>add-module-info</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}/modules</outputDirectory>
-							<overwriteExistingFiles>true</overwriteExistingFiles>
-							<ignoreSigningInformation>true</ignoreSigningInformation>
-							<modules>
-								<module>
-									<artifact>
-										<groupId>net.sf.saxon</groupId>
-										<artifactId>Saxon-HE</artifactId>
-										<version>${saxon.version}</version>
-									</artifact>
-									<moduleInfoSource>
-										module Saxon.HE {
-
-										}
-									</moduleInfoSource>
-								</module>
-							</modules>
-
-						</configuration>
-					</execution>
-					<execution>
-						<!-- due to an apparent plugin bug, must run after clean -->
-						<id>create-runtime-image</id>
-						<phase>install</phase>
-						<goals>
-							<goal>create-runtime-image</goal>
-						</goals>
-						<configuration>
-							<modulePath>
-								<path>${project.build.directory}/modules</path>
-							</modulePath>
-							<modules>
-								<module>diff.merge</module>
-								<module>Saxon.HE</module>
-							</modules>
-							<outputDirectory>
-								${project.build.directory}/jlink-image
-							</outputDirectory>
-							<launchers>
-								<launcher>
-									<name>xmldiff</name>
-									<module>diff.merge</module>
-									<mainClass>io.fixprotocol.xml.XmlDiff</mainClass>
-								</launcher>
-								<launcher>
-									<name>xmlmerge</name>
-									<module>diff.merge</module>
-									<mainClass>io.fixprotocol.xml.XmlMerge</mainClass>
-								</launcher>
-							</launchers>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<version>3.1.1</version>
@@ -218,6 +152,81 @@
 	</build>
 
 	<profiles>
+		<profile>
+			<id>image</id>
+			<build>
+				<plugins>
+					<!-- Create an image using jlink -->
+					<!-- Works with fork donmendelson/moditect to support multiple entry points -->
+					<plugin>
+						<groupId>org.moditect</groupId>
+						<artifactId>moditect-maven-plugin</artifactId>
+						<version>1.0.0-SNAPSHOT</version>
+						<executions>
+							<execution>
+								<id>add-module-infos</id>
+								<phase>generate-resources</phase>
+								<goals>
+									<goal>add-module-info</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/modules</outputDirectory>
+									<overwriteExistingFiles>true</overwriteExistingFiles>
+									<ignoreSigningInformation>true</ignoreSigningInformation>
+									<modules>
+										<module>
+											<artifact>
+												<groupId>net.sf.saxon</groupId>
+												<artifactId>Saxon-HE</artifactId>
+												<version>${saxon.version}</version>
+											</artifact>
+											<moduleInfoSource>
+												module Saxon.HE {
+
+												}
+											</moduleInfoSource>
+										</module>
+									</modules>
+								</configuration>
+							</execution>
+							<execution>
+								<!-- due to an apparent plugin bug, must run after clean -->
+								<!-- for unknown reason, this step does not work in Eclipse -->
+								<id>create-runtime-image</id>
+								<phase>install</phase>
+								<goals>
+									<goal>create-runtime-image</goal>
+								</goals>
+								<configuration>
+									<modulePath>
+										<path>${project.build.directory}/modules</path>
+									</modulePath>
+									<modules>
+										<module>diff.merge</module>
+										<module>Saxon.HE</module>
+									</modules>
+									<outputDirectory>
+										${project.build.directory}/jlink-image
+									</outputDirectory>
+									<launchers>
+										<launcher>
+											<name>xmldiff</name>
+											<module>diff.merge</module>
+											<mainClass>io.fixprotocol.xml.XmlDiff</mainClass>
+										</launcher>
+										<launcher>
+											<name>xmlmerge</name>
+											<module>diff.merge</module>
+											<mainClass>io.fixprotocol.xml.XmlMerge</mainClass>
+										</launcher>
+									</launchers>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<profile>
 			<id>release</id>
 			<build>
