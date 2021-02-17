@@ -14,9 +14,9 @@
  */
 package io.fixprotocol.xml;
 
-import static io.fixprotocol.xml.XmlDiffListener.Event.Difference.ADD;
-import static io.fixprotocol.xml.XmlDiffListener.Event.Difference.REMOVE;
-import static io.fixprotocol.xml.XmlDiffListener.Event.Difference.REPLACE;
+import static io.fixprotocol.xml.XmlDiffListener.Event.Difference.*;
+import static io.fixprotocol.xml.XmlDiffListener.Event.Pos.*;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -47,6 +47,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import io.fixprotocol.xml.XmlDiffListener.Event;
 import io.fixprotocol.xml.XmlDiffListener.Event.Difference;
+import io.fixprotocol.xml.XmlDiffListener.Event.Pos;
 
 /**
  * Utility to report differences between two XML files
@@ -200,6 +201,12 @@ public class XmlDiff {
     }
   }
 
+  /**
+   * Compare XML elements with regard to order of children.
+   * 
+   * @param areElementsOrdered if {@code true} order is significant for comparison and add instructions are to insert in
+   * a specific position. Otherwise, order is insignificant for comparison, and adds are appended to existing children.
+   */
   public void setAreElementsOrdered(boolean areElementsOrdered) {
     this.areElementsOrdered = areElementsOrdered;
   }
@@ -213,14 +220,23 @@ public class XmlDiff {
   public void setListener(XmlDiffListener listener) {
     this.listener = listener;
   }
-
-  private void addElement(Element element)
+  
+  // append or prepend
+  private void appendElement(Element elementToAdd, Pos pos)
       throws DOMException, UnsupportedEncodingException, TransformerException {
-    final String xpath = XpathUtil.getFullXPath(element.getParentNode());
-
+    String xpath= XpathUtil.getFullXPath(elementToAdd.getParentNode());
     // Copies an element with its attributes (deep copy)
-    Node elementCopy = element.cloneNode(true);
-    listener.accept(new Event(ADD, xpath, elementCopy));
+    Node elementCopy = elementToAdd.cloneNode(true);
+    listener.accept(Event.add(xpath, elementCopy, pos));
+  }
+
+  // insert before or after
+  private void insertElement(Element elementToAdd, Node location, Pos pos)
+      throws DOMException, UnsupportedEncodingException, TransformerException {
+    String xpath= XpathUtil.getFullXPath(location);
+    // Copies an element with its attributes (deep copy)
+    Node elementCopy = elementToAdd.cloneNode(true);
+    listener.accept(Event.add(xpath, elementCopy, pos));
   }
 
   private boolean diffAttributes(NamedNodeMap attributes1, NamedNodeMap attributes2) {
@@ -256,13 +272,13 @@ public class XmlDiff {
       switch (difference) {
         case ADD:
           listener.accept(
-              new Event(ADD, XpathUtil.getFullXPath(attributesArray2.get(index2).getOwnerElement()),
-                  attributesArray2.get(index2)));
+              Event.add(XpathUtil.getFullXPath(attributesArray2.get(index2).getOwnerElement()),
+                  attributesArray2.get(index2), append));
           index2 = Math.min(index2 + 1, attributesArray2.size());
           isEqual = false;
           break;
         case REPLACE:
-          listener.accept(new Event(REPLACE, XpathUtil.getFullXPath(attributesArray1.get(index1)),
+          listener.accept(Event.replace(XpathUtil.getFullXPath(attributesArray1.get(index1)),
               attributesArray2.get(index2), attributesArray1.get(index1)));
           index1 = Math.min(index1 + 1, attributesArray1.size());
           index2 = Math.min(index2 + 1, attributesArray2.size());
@@ -273,7 +289,7 @@ public class XmlDiff {
           index2 = Math.min(index2 + 1, attributesArray2.size());
           break;
         case REMOVE:
-          listener.accept(new Event(REMOVE, XpathUtil.getFullXPath(attributesArray1.get(index1))));
+          listener.accept(Event.remove(XpathUtil.getFullXPath(attributesArray1.get(index1))));
           index1 = Math.min(index1 + 1, attributesArray1.size());
           isEqual = false;
           break;
@@ -301,6 +317,7 @@ public class XmlDiff {
     int index2 = 0;
     boolean isEqual = true;
     while (index1 < elementsArray1.size() || index2 < elementsArray2.size()) {
+
       Difference difference = Difference.EQUAL;
       if (index1 == elementsArray1.size()) {
         difference = ADD;
@@ -320,12 +337,16 @@ public class XmlDiff {
       }
       switch (difference) {
         case ADD:
-          addElement(elementsArray2.get(index2));
+          if (areElementsOrdered && index1 < elementsArray1.size()) {
+            insertElement(elementsArray2.get(index2), elementsArray1.get(index1), before);
+          } else {
+            appendElement(elementsArray2.get(index2), append);
+          }
           index2 = Math.min(index2 + 1, elementsArray2.size());
           isEqual = false;
           break;
         case REPLACE:
-          listener.accept(new Event(REPLACE, XpathUtil.getFullXPath(elementsArray1.get(index1)),
+          listener.accept(Event.replace(XpathUtil.getFullXPath(elementsArray1.get(index1)),
               elementsArray2.get(index2), elementsArray1.get(index1)));
           index1 = Math.min(index1 + 1, elementsArray1.size());
           index2 = Math.min(index2 + 1, elementsArray2.size());
@@ -336,8 +357,7 @@ public class XmlDiff {
           index2 = Math.min(index2 + 1, elementsArray2.size());
           break;
         case REMOVE:
-          listener.accept(new Event(REMOVE, XpathUtil.getFullXPath(elementsArray1.get(index1)),
-              elementsArray1.get(index1)));
+          listener.accept(Event.remove(XpathUtil.getFullXPath(elementsArray1.get(index1))));
           index1 = Math.min(index1 + 1, elementsArray1.size());
           isEqual = false;
           break;
@@ -366,18 +386,20 @@ public class XmlDiff {
 
     if (child1 != null && Node.TEXT_NODE == child1.getNodeType()) {
       if (child2 == null || Node.TEXT_NODE != child2.getNodeType()) {
-        listener.accept(new Event(REMOVE, XpathUtil.getFullXPath(element1), child1));
+        
+        // remove
+        listener.accept(Event.remove(XpathUtil.getFullXPath(child1)));
       } else {
         int valueCompare = child1.getNodeValue().trim().compareTo(child2.getNodeValue().trim());
 
         if (valueCompare != 0) {
-          listener.accept(new Event(REPLACE, XpathUtil.getFullXPath(element1), child2, child1));
+          listener.accept(Event.replace(XpathUtil.getFullXPath(element1), child2, child1));
         } else {
           return true;
         }
       }
     } else if (child2 != null && Node.TEXT_NODE == child2.getNodeType()) {
-      listener.accept(new Event(ADD, XpathUtil.getFullXPath(element2), child2));
+      listener.accept(Event.add(XpathUtil.getFullXPath(element2), child2, append));
     }
     return false;
   }

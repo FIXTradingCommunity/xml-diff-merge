@@ -17,7 +17,6 @@ package io.fixprotocol.xml;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +35,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
+
+import static io.fixprotocol.xml.XmlDiffListener.Event.Pos.*;
 
 /**
  * Writes XML diffs as patch operations specified by IETF RFC 5261
@@ -92,6 +93,9 @@ public class PatchOpsListener implements XmlDiffListener {
         } else if (t.getValue() instanceof Element) {
           // add element
           addElement.setAttribute("sel", t.getXpath());
+          if (t.getPos() != append) {
+            addElement.setAttribute("pos", t.getPos().toString());
+          }
           // will import child text node if it exists (deep copy)
           Element newValue = (Element) document.importNode(t.getValue(), true);
           addElement.appendChild(newValue);

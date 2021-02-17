@@ -144,10 +144,11 @@ public class XmlMerge {
       throws XPathExpressionException {
     String xpathExpression = patchOpElement.getAttribute("sel");
     String attribute = patchOpElement.getAttribute("type");
+    String pos = patchOpElement.getAttribute("pos");
 
     final XPathExpression compiled = xpathEvaluator.compile(xpathExpression);
-    Node parent = (Node) compiled.evaluate(doc, XPathConstants.NODE);
-    if (parent == null) {
+    Node siteNode = (Node) compiled.evaluate(doc, XPathConstants.NODE);
+    if (siteNode == null) {
       throw new XPathExpressionException(
           "No target for Xpath expression in 'sel' for add; " + xpathExpression);
     }
@@ -158,11 +159,11 @@ public class XmlMerge {
       for (int i = 0; i < children.getLength(); i++) {
         Node child = children.item(i);
         if (Node.TEXT_NODE == child.getNodeType()) {
-          value = patchOpElement.getNodeValue();
+          value = patchOpElement.getTextContent();
           break;
         }
       }
-      ((Element) parent).setAttribute(attribute.substring(1), value);
+      ((Element) siteNode).setAttribute(attribute.substring(1), value);
     } else {
       Element value = null;
       NodeList children = patchOpElement.getChildNodes();
@@ -174,7 +175,28 @@ public class XmlMerge {
         }
       }
       Node imported = doc.importNode(value, true);
-      parent.appendChild(imported);
+      switch (pos) {
+        case "prepend":
+          // siteNode is parent - make first child
+          siteNode.insertBefore(imported, siteNode.getFirstChild());
+          break;
+        case "before":
+          // insert as sibling before siteNode
+          siteNode.getParentNode().insertBefore(imported, siteNode);
+          break;
+        case "after":
+          // insert as sibling after siteNode
+          Node nextSibling = siteNode.getNextSibling();
+          if (nextSibling != null) {
+            siteNode.getParentNode().insertBefore(imported, nextSibling);
+          } else {
+            siteNode.getParentNode().appendChild(imported);
+          }
+          break;
+        default:
+          // siteNode is parent - make last child
+          siteNode.appendChild(imported);
+      }
     }
   }
 

@@ -39,48 +39,62 @@ public interface XmlDiffListener extends Consumer<XmlDiffListener.Event>, AutoCl
       ADD, EQUAL, REMOVE, REPLACE
     }
 
-    private final Difference difference;
-    private final Node oldValue;
-    private final Node value;
-    private final String xpath;
-
     /**
-     * Constructor for REMOVE event
-     * 
-     * @param difference type of event; must not be null
-     * @param xpath node to remove; must not be null
+     * Position of ADD
      */
-    Event(Difference difference, String xpath) {
-      this(difference, xpath, null, null);
+    enum Pos {
+      after, append, before, prepend
     }
 
     /**
-     * Constructor for ADD event
+     * Return an Event to ADD
      * 
      * @param difference type of event; must not be null
      * @param xpath parent of the added node; must not be null
      * @param value node value of element or attribute; must not be null
      */
-    Event(Difference difference, String xpath, Node value) {
-      this(difference, xpath, value, null);
-      Objects.requireNonNull(value, "Node to add missing");
+    static Event add(String xpath, Node value, Pos pos) {
+      return new Event(Difference.ADD, xpath, Objects.requireNonNull(value, "Node to add missing"),
+          null, pos);
     }
 
     /**
-     * Constructor for REPLACE event
+     * Return an Event to REMOVE
      * 
-     * @param difference type of event; must not be null
+     * @param xpath node to remove; must not be null
+     */
+    static Event remove(String xpath) {
+      return new Event(Difference.REMOVE, xpath, null, null, null);
+    }
+
+    /**
+     * Return an Event to REPLACE
+     * 
      * @param xpath node target of change; must not be null
      * @param value node new value of element or attribute
      * @param oldValue previous node value
      */
-    Event(Difference difference, String xpath, Node value, Node oldValue) {
-      Objects.requireNonNull(difference, "Difference type missing");
-      Objects.requireNonNull(xpath, "Xpath missing");
-      this.difference = difference;
-      this.xpath = xpath;
+    static Event replace(String xpath, Node value, Node oldValue) {
+      return new Event(Difference.REPLACE, xpath, value,
+          Objects.requireNonNull(oldValue, "Old node missing"), null);
+    }
+
+    private final Difference difference;
+    private final Node oldValue;
+    private final Pos pos;
+    private final Node value;
+    private final String xpath;
+
+    private Event(Difference difference, String xpath, Node value, Node oldValue, Pos pos) {
+      this.difference = Objects.requireNonNull(difference, "Difference type missing");
+      this.xpath = Objects.requireNonNull(xpath, "Xpath missing");
       this.value = value;
       this.oldValue = oldValue;
+      this.pos = pos;
+    }
+
+    public Pos getPos() {
+      return pos;
     }
 
     Difference getDifference() {

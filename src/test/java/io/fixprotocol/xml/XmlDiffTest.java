@@ -72,8 +72,6 @@ class CustomLogFactory implements LoggerContextFactory {
 
 public class XmlDiffTest {
 
-  private static final String MERGED_FILENAME = "target/test/testmerged.xml";
-  private static final String DIFF_FILENAME = "target/test/testdiff.xml";
   private XmlDiff xmlDiff;
   private XmlMerge xmlMerge;
 
@@ -89,25 +87,37 @@ public class XmlDiffTest {
   @BeforeEach
   public void setUp() throws Exception {
     xmlDiff = new XmlDiff();
-    xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(DIFF_FILENAME)));
+    
     xmlMerge = new XmlMerge();
   }
 
   @Test
-  public void simpleDiffUnordered() throws Exception {
+  public void unordered() throws Exception {
+
+    final String mergedFilename = "target/test/unorderedmerged.xml";
+    final String diffFilename = "target/test/unordereddiff.xml";
     try (
         final FileInputStream is1 = new FileInputStream(
             Thread.currentThread().getContextClassLoader().getResource("DiffTest1.xml").getFile());
         final FileInputStream is2 = new FileInputStream(Thread.currentThread()
             .getContextClassLoader().getResource("DiffTest2.xml").getFile())) {
+      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
       xmlDiff.setAreElementsOrdered(false);
       xmlDiff.diff(is1, is2);
     }
 
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-    Document doc = docBuilder.parse(DIFF_FILENAME);
+    Document doc = docBuilder.parse(diffFilename);
 
+//     Expectation:
+//     replace @version="1" with version="2"
+//     add  <eee attr="z"/>
+//     replace <ccc>Some test</ccc> with <ccc>Some other test</ccc>
+//     remove <ddd att="y"/>
+//     remove <fff id="1"/>
+//     add <fff id="3"/>
+//     
     assertEquals(2, doc.getElementsByTagName("add").getLength());
     assertEquals(2, doc.getElementsByTagName("replace").getLength());
     assertEquals(2, doc.getElementsByTagName("remove").getLength());
@@ -115,47 +125,61 @@ public class XmlDiffTest {
     try (
         final FileInputStream is1Baseline = new FileInputStream(
             Thread.currentThread().getContextClassLoader().getResource("DiffTest1.xml").getFile());
-        final FileInputStream isDiff = new FileInputStream(DIFF_FILENAME);
-        final FileOutputStream osMerge = new FileOutputStream(MERGED_FILENAME)) {
+        final FileInputStream isDiff = new FileInputStream(diffFilename);
+        final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
       xmlMerge.merge(is1Baseline, isDiff, osMerge);
     }
   }
 
   @Test
-  public void simpleDiffOrdered() throws Exception {
+  public void ordered() throws Exception {
+    final String mergedFilename = "target/test/orderedmerged.xml";
+    final String diffFilename = "target/test/ordereddiff.xml";
     try (
         final FileInputStream is1 = new FileInputStream(
             Thread.currentThread().getContextClassLoader().getResource("DiffTest1.xml").getFile());
         final FileInputStream is2 = new FileInputStream(Thread.currentThread()
             .getContextClassLoader().getResource("DiffTest2.xml").getFile())) {
+      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
       xmlDiff.setAreElementsOrdered(true);
       xmlDiff.diff(is1, is2);
     }
 
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-    Document doc = docBuilder.parse(DIFF_FILENAME);
+    Document doc = docBuilder.parse(diffFilename);
 
     assertEquals(3, doc.getElementsByTagName("add").getLength());
     assertEquals(1, doc.getElementsByTagName("replace").getLength());
     assertEquals(3, doc.getElementsByTagName("remove").getLength());
+    
+    try (
+        final FileInputStream is1Baseline = new FileInputStream(Thread.currentThread()
+            .getContextClassLoader().getResource("DiffTest1.xml").getFile());
+        final FileInputStream isDiff = new FileInputStream(diffFilename);
+        final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
+      xmlMerge.merge(is1Baseline, isDiff, osMerge);
+    }
   }
 
   @Test
-  public void diffAndMerge() throws Exception {
+  public void epDiff() throws Exception {
+    final String mergedFilename = "target/test/roundtripmerged.xml";
+    final String diffFilename = "target/test/roundtripdiff.xml";
     try (
         final FileInputStream is1 = new FileInputStream(Thread.currentThread()
             .getContextClassLoader().getResource("FixRepository2016EP215.xml").getFile());
         final FileInputStream is2 = new FileInputStream(Thread.currentThread()
             .getContextClassLoader().getResource("FixRepository2016EP216.xml").getFile())) {
+      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
       xmlDiff.diff(is1, is2);
     }
 
     try (
         final FileInputStream is1Baseline = new FileInputStream(Thread.currentThread()
             .getContextClassLoader().getResource("FixRepository2016EP215.xml").getFile());
-        final FileInputStream isDiff = new FileInputStream(DIFF_FILENAME);
-        final FileOutputStream osMerge = new FileOutputStream(MERGED_FILENAME)) {
+        final FileInputStream isDiff = new FileInputStream(diffFilename);
+        final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
       xmlMerge.merge(is1Baseline, isDiff, osMerge);
     }
   }
