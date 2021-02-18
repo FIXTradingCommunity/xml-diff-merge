@@ -16,12 +16,11 @@ package io.fixprotocol.xml;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-
 import org.w3c.dom.Node;
 
 /**
  * Event handler for {@link XmlDiff}
- * 
+ *
  * @author Don Mendelson
  *
  */
@@ -48,10 +47,10 @@ public interface XmlDiffListener extends Consumer<XmlDiffListener.Event>, AutoCl
 
     /**
      * Return an Event to ADD
-     * 
-     * @param difference type of event; must not be null
+     *
      * @param xpath parent of the added node; must not be null
      * @param value node value of element or attribute; must not be null
+     * @param pos position to add or insert new Node
      */
     static Event add(String xpath, Node value, Pos pos) {
       return new Event(Difference.ADD, xpath, Objects.requireNonNull(value, "Node to add missing"),
@@ -60,7 +59,7 @@ public interface XmlDiffListener extends Consumer<XmlDiffListener.Event>, AutoCl
 
     /**
      * Return an Event to REMOVE
-     * 
+     *
      * @param xpath node to remove; must not be null
      */
     static Event remove(String xpath) {
@@ -69,7 +68,7 @@ public interface XmlDiffListener extends Consumer<XmlDiffListener.Event>, AutoCl
 
     /**
      * Return an Event to REPLACE
-     * 
+     *
      * @param xpath node target of change; must not be null
      * @param value node new value of element or attribute
      * @param oldValue previous node value

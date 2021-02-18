@@ -16,7 +16,6 @@ package io.fixprotocol.xml;
 
 import java.util.Objects;
 import java.util.Stack;
-
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -27,13 +26,13 @@ import org.w3c.dom.Node;
  * @see <a
  *      href=http://lekkimworld.com/2007/06/19/building_xpath_expression_from_xml_node.html>Building
  *      XPath expression from XML node</a>
-
+ * 
  */
 final class XpathUtil {
 
   public static String getAttribute(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     if (fields.length == 0) {
       return "";
     }
@@ -44,9 +43,30 @@ final class XpathUtil {
     }
   }
 
+  public static Attr getAttributeCaseInsensitive(Element element, String attributeName) {
+    final NamedNodeMap attributes = element.getAttributes();
+    for (int i = 0; i < attributes.getLength(); i++) {
+      final Node attribute = attributes.item(i);
+      if (attribute.getNodeName().equalsIgnoreCase(attributeName)) {
+        return (Attr) attribute;
+      }
+    }
+
+    return null;
+  }
+
+  public static String getAttributeCaseInsensitiveValue(Element element, String attributeName) {
+    final Attr attr = getAttributeCaseInsensitive(element, attributeName);
+    if (attr != null) {
+      return attr.getValue();
+    } else {
+      return "";
+    }
+  }
+
   public static String getElementLocalName(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     if (fields.length == 0) {
       return "";
     }
@@ -54,16 +74,16 @@ final class XpathUtil {
       if (fields[i].startsWith("@")) {
         continue;
       }
-      int colon = fields[i].indexOf(":") + 1;
-      int bracket = fields[i].indexOf("[");
+      final int colon = fields[i].indexOf(":") + 1;
+      final int bracket = fields[i].indexOf("[");
       return fields[i].substring(colon, bracket == -1 ? fields[i].length() : bracket);
     }
     return "";
   }
-  
+
   public static String getElementPredicate(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     if (fields.length == 0) {
       return "";
     }
@@ -71,8 +91,8 @@ final class XpathUtil {
       if (fields[i].startsWith("@")) {
         continue;
       }
-      int open = fields[i].indexOf("=");
-      int close = fields[i].indexOf("]");
+      final int open = fields[i].indexOf("=");
+      final int close = fields[i].indexOf("]");
       if (open == -1 || close == -1) {
         return "";
       }
@@ -84,7 +104,7 @@ final class XpathUtil {
 
   /**
    * Utility to determine the XPATH of an XML node
-   * 
+   *
    * @param n an XML node
    * @return XPATH representation
    */
@@ -93,8 +113,8 @@ final class XpathUtil {
 
     // declarations
     Node parent = null;
-    Stack<Node> hierarchy = new Stack<>();
-    StringBuilder buffer = new StringBuilder();
+    final Stack<Node> hierarchy = new Stack<>();
+    final StringBuilder buffer = new StringBuilder();
 
     // push element on stack
     hierarchy.push(n);
@@ -129,7 +149,7 @@ final class XpathUtil {
           buffer.append("/");
           break;
         case Node.ELEMENT_NODE:
-          Element e = (Element) node;
+          final Element e = (Element) node;
 
           // is this the root element?
           if ("/".equals(buffer.toString())) {
@@ -178,24 +198,9 @@ final class XpathUtil {
     return buffer.toString();
   }
 
-  static String getQualifiedNodeName(Node node) {
-    String prefix = node.getPrefix();
-    String uri = node.getNamespaceURI();
-    if (prefix == null && uri != null) {
-      StringBuilder buffer = new StringBuilder();
-      buffer.append("Q{");
-      buffer.append(uri);
-      buffer.append("}");
-      buffer.append(node.getLocalName());
-      return buffer.toString();
-    } else {
-    return node.getNodeName();
-    }
-  }
-
   public static String getParentLocalName(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     if (fields.length == 0) {
       return "";
     }
@@ -208,8 +213,8 @@ final class XpathUtil {
         elementFound = true;
         continue;
       }
-      int colon = fields[i].indexOf(":") + 1;
-      int bracket = fields[i].indexOf("[");
+      final int colon = fields[i].indexOf(":") + 1;
+      final int bracket = fields[i].indexOf("[");
       return fields[i].substring(colon, bracket == -1 ? fields[i].length() : bracket);
     }
     return "";
@@ -217,7 +222,7 @@ final class XpathUtil {
 
   public static String getParentPredicate(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     if (fields.length == 0) {
       return "";
     }
@@ -226,8 +231,8 @@ final class XpathUtil {
       if (fields[i].startsWith("@")) {
         continue;
       }
-      int open = fields[i].indexOf("=");
-      int close = fields[i].indexOf("]");
+      final int open = fields[i].indexOf("=");
+      final int close = fields[i].indexOf("]");
       if (open == -1 || close == -1) {
         continue;
       }
@@ -240,32 +245,26 @@ final class XpathUtil {
     }
     return "";
   }
-  
+
+
   public static boolean isAttribute(String xpath) {
     Objects.requireNonNull(xpath, "Xpath cannot be null");
-    String[] fields = xpath.split("/");
+    final String[] fields = xpath.split("/");
     return !(fields.length == 0) && fields[fields.length - 1].startsWith("@");
   }
-  
-  
-  public static Attr getAttributeCaseInsensitive(Element element, String attributeName) {
-    NamedNodeMap attributes = element.getAttributes();
-    for (int i =0; i < attributes.getLength(); i++) {
-      Node attribute = attributes.item(i);
-      if (attribute.getNodeName().equalsIgnoreCase(attributeName)) {
-        return (Attr)attribute;
-      }
-    }
-    
-    return null;
-  }
 
-  public static String getAttributeCaseInsensitiveValue(Element element, String attributeName) {
-    Attr attr = getAttributeCaseInsensitive(element, attributeName);
-    if (attr != null) {
-      return attr.getValue();
+  static String getQualifiedNodeName(Node node) {
+    final String prefix = node.getPrefix();
+    final String uri = node.getNamespaceURI();
+    if (prefix == null && uri != null) {
+      final StringBuilder buffer = new StringBuilder();
+      buffer.append("Q{");
+      buffer.append(uri);
+      buffer.append("}");
+      buffer.append(node.getLocalName());
+      return buffer.toString();
     } else {
-      return "";
+      return node.getNodeName();
     }
   }
 

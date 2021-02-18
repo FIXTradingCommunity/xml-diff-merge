@@ -22,6 +22,10 @@ java io.fixprotocol.xml.XmlDiff <in-file1> <in-file2> [output-file]
 ```
 If the output file is not provided, then results go to the console.
 
+Optionally, argument `-e <event-filename>` can direct errors to a JSON file suitable for UI rendering.
+
+Optionally, argument `-u` treats XML nodes as unordered so moves among children are not considered significant. Otherwise, a move will result in an add and a remove operation.
+
 ## Merge
 
 The XmlMerge utility takes a base XML file and a difference file and merges the two to produce an new XML file.
@@ -31,9 +35,17 @@ To run the merge utility, run this command line:
 ```
 java io.fixprotocol.xml.XmlMerge <base-xml-file> <diff-file> <output-xml-file>
 ```
+Optionally, argument `-e <event-filename>` can direct errors to a JSON file suitable for UI rendering.
+
+The merge utility attempts to continue even if errors occur. Examples of logged errors:
+
+```
+11:12:53.019 [main] ERROR io.fixprotocol.xml.XmlMerge - Target not found for add; /foo
+11:12:53.035 [main] ERROR io.fixprotocol.xml.XmlMerge - Invalid XPath expression for remove; /aaa/fff[
+```
 
 ## License
-© Copyright 2017-2019 FIX Protocol Limited
+© Copyright 2017-2021 FIX Protocol Limited
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

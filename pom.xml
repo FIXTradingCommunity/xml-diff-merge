@@ -5,7 +5,7 @@
 	<groupId>io.fixprotocol.xml</groupId>
 	<artifactId>diff-merge</artifactId>
 	<description>Diff/merge tool for XML files</description>
-	<version>1.4.1-SNAPSHOT</version>
+	<version>1.5.1-SNAPSHOT</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 
 	<prerequisites>
@@ -17,6 +17,7 @@
 		<java.version>11</java.version>
 		<junit.version>5.7.1</junit.version>
 		<log4j.version>2.14.0</log4j.version>
+		<orchestra.version>1.6.10</orchestra.version>
 		<saxon.version>10.3</saxon.version>
 		<ignoreSigningInformation>true</ignoreSigningInformation>
 	</properties>
@@ -63,6 +64,11 @@
 			<groupId>net.sf.saxon</groupId>
 			<artifactId>Saxon-HE</artifactId>
 			<version>${saxon.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.fixprotocol.orchestra</groupId>
+			<artifactId>orchestra-common</artifactId>
+			<version>${orchestra.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>

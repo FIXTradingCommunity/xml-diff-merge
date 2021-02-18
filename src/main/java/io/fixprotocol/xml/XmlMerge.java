@@ -35,50 +35,66 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
+import io.fixprotocol.orchestra.event.EventListener;
+import io.fixprotocol.orchestra.event.EventListenerFactory;
+import io.fixprotocol.orchestra.event.TeeEventListener;
 
 /**
  * Merges a difference file created by {@link XmlDiff} into a baseline XML file to create a new XML
  * file
- * 
+ *
  * Reads XML diffs as patch operations specified by IETF RFC 5261
- * 
+ *
  * @author Don Mendelson
- * 
+ *
  * @see <a href="https://tools.ietf.org/html/rfc5261">An Extensible Markup Language (XML) Patch
  *      Operations Framework Utilizing XML Path Language (XPath) Selectors</a>
  *
  */
 public class XmlMerge {
+  private static final Logger logger = LogManager.getLogger();
+  private int errors = 0;
+
   /**
    * Merges a baseline XML file with a differences file to produce a second XML file
-   * 
+   *
    * @param args three file names: baseline XML file, diff file, name of second XML to produce
-   * @throws Exception if an IO or parsing error occurs
-   * 
+   * Optionally, argument '-e <event-filename>' can direct errors to a JSON file for UI rendering.
+   *
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     if (args.length < 3) {
       usage();
+      System.exit(1);
     } else {
       try {
-        XmlMerge tool = new XmlMerge();
-        tool.merge(new FileInputStream(args[0]), new FileInputStream(args[1]),
+        String eventFilename = null;
+        final XmlMerge tool = new XmlMerge();
+        for (int i = 3; i < args.length; i++) {
+          switch (args[i]) {
+            case "-e":
+              eventFilename = args[i + 1];
+              i++;
+              break;
+          }
+        }
+        tool.addEventLogger(eventFilename != null ? new FileOutputStream(eventFilename) : null);
+
+        boolean successful = tool.merge(new FileInputStream(args[0]), new FileInputStream(args[1]),
             new FileOutputStream(args[2]));
-      } catch (Exception e) {
-        parentLogger.fatal("XmlMerge failed", e);
-        throw e;
+        System.exit(successful ? 0 : 1);
+      } catch (final Exception e) {
+        logger.fatal("XmlMerge failed", e);
+        System.exit(1);
       }
     }
   }
-
-  private static final Logger parentLogger = LogManager.getLogger();
 
   /**
    * Prints application usage
@@ -87,15 +103,31 @@ public class XmlMerge {
     System.out.println("Usage: XmlMerge <xml-file1> <diff-file> <xml-file2>");
   }
 
+  private final TeeEventListener eventLogger;
+  private final EventListenerFactory factory;
+
+  public XmlMerge() {
+    eventLogger = new TeeEventListener();
+    factory = new EventListenerFactory();
+    final EventListener logEventLogger = factory.getInstance("LOG4J");
+    try {
+      logEventLogger.setResource(logger);
+      eventLogger.addEventListener(logEventLogger);
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+  }
+
   /**
    * Merges differences into an XML file to produce a new XML file
-   * 
+   *
    * @param baseline XML input stream
    * @param diff reads difference stream produced by {@link XmlDiff}
    * @param out XML output
+   * @return returns {@code true} if merge completed successfully without errors
    * @throws Exception if an IO or parser error occurs
    */
-  public void merge(InputStream baseline, InputStream diff, OutputStream out) throws Exception {
+  public boolean merge(InputStream baseline, InputStream diff, OutputStream out) throws Exception {
     Objects.requireNonNull(baseline, "Baseline stream cannot be null");
     Objects.requireNonNull(diff, "Difference stream cannot be null");
     Objects.requireNonNull(out, "Output stream cannot be null");
@@ -111,15 +143,15 @@ public class XmlMerge {
 
     final Document diffDoc = parse(diff);
     final Element diffRoot = diffDoc.getDocumentElement();
-    NodeList children = diffRoot.getChildNodes();
+    final NodeList children = diffRoot.getChildNodes();
     for (int index = 0; index < children.getLength(); index++) {
-      Node child = children.item(index);
-      short type = child.getNodeType();
+      final Node child = children.item(index);
+      final short type = child.getNodeType();
       if (type != Node.ELEMENT_NODE) {
         continue;
       }
-      Element patchOpElement = (Element) child;
-      String tag = patchOpElement.getNodeName();
+      final Element patchOpElement = (Element) child;
+      final String tag = patchOpElement.getNodeName();
 
       switch (tag) {
         case "add":
@@ -132,71 +164,87 @@ public class XmlMerge {
           replace(baselineDoc, xpathEvaluator, patchOpElement);
           break;
         default:
+          errors++;
           throw new IllegalArgumentException(String.format("Invalid merge operation %s", tag));
       }
     }
 
     write(baselineDoc, out);
-    parentLogger.info("XmlMerge complete");
+    eventLogger.info("XmlMerge completed with {0} errors", getErrors());
+    return getErrors() == 0;
   }
 
-  private void add(Document doc, XPath xpathEvaluator, Element patchOpElement)
-      throws XPathExpressionException {
-    String xpathExpression = patchOpElement.getAttribute("sel");
-    String attribute = patchOpElement.getAttribute("type");
-    String pos = patchOpElement.getAttribute("pos");
+  private void add(Document doc, XPath xpathEvaluator, Element patchOpElement) {
+    final String xpathExpression = patchOpElement.getAttribute("sel");
+    final String attribute = patchOpElement.getAttribute("type");
+    final String pos = patchOpElement.getAttribute("pos");
 
-    final XPathExpression compiled = xpathEvaluator.compile(xpathExpression);
-    Node siteNode = (Node) compiled.evaluate(doc, XPathConstants.NODE);
-    if (siteNode == null) {
-      throw new XPathExpressionException(
-          "No target for Xpath expression in 'sel' for add; " + xpathExpression);
-    }
+    XPathExpression compiled;
+    try {
+      compiled = xpathEvaluator.compile(xpathExpression);
 
-    if (attribute.length() > 0) {
-      String value = null;
-      NodeList children = patchOpElement.getChildNodes();
-      for (int i = 0; i < children.getLength(); i++) {
-        Node child = children.item(i);
-        if (Node.TEXT_NODE == child.getNodeType()) {
-          value = patchOpElement.getTextContent();
-          break;
-        }
-      }
-      ((Element) siteNode).setAttribute(attribute.substring(1), value);
-    } else {
-      Element value = null;
-      NodeList children = patchOpElement.getChildNodes();
-      for (int i = 0; i < children.getLength(); i++) {
-        Node child = children.item(i);
-        if (Node.ELEMENT_NODE == child.getNodeType()) {
-          value = (Element) child;
-          break;
-        }
-      }
-      Node imported = doc.importNode(value, true);
-      switch (pos) {
-        case "prepend":
-          // siteNode is parent - make first child
-          siteNode.insertBefore(imported, siteNode.getFirstChild());
-          break;
-        case "before":
-          // insert as sibling before siteNode
-          siteNode.getParentNode().insertBefore(imported, siteNode);
-          break;
-        case "after":
-          // insert as sibling after siteNode
-          Node nextSibling = siteNode.getNextSibling();
-          if (nextSibling != null) {
-            siteNode.getParentNode().insertBefore(imported, nextSibling);
-          } else {
-            siteNode.getParentNode().appendChild(imported);
+      final Node siteNode = (Node) compiled.evaluate(doc, XPathConstants.NODE);
+      if (siteNode == null) {
+        errors++;
+        eventLogger.error("Target not found for add; {0}", xpathExpression);
+      } else {
+        if (attribute.length() > 0) {
+          String value = null;
+          final NodeList children = patchOpElement.getChildNodes();
+          for (int i = 0; i < children.getLength(); i++) {
+            final Node child = children.item(i);
+            if (Node.TEXT_NODE == child.getNodeType()) {
+              value = patchOpElement.getTextContent();
+              break;
+            }
           }
-          break;
-        default:
-          // siteNode is parent - make last child
-          siteNode.appendChild(imported);
+          ((Element) siteNode).setAttribute(attribute.substring(1), value);
+        } else {
+          Element value = null;
+          final NodeList children = patchOpElement.getChildNodes();
+          for (int i = 0; i < children.getLength(); i++) {
+            final Node child = children.item(i);
+            if (Node.ELEMENT_NODE == child.getNodeType()) {
+              value = (Element) child;
+              break;
+            }
+          }
+          final Node imported = doc.importNode(value, true);
+          switch (pos) {
+            case "prepend":
+              // siteNode is parent - make first child
+              siteNode.insertBefore(imported, siteNode.getFirstChild());
+              break;
+            case "before":
+              // insert as sibling before siteNode
+              siteNode.getParentNode().insertBefore(imported, siteNode);
+              break;
+            case "after":
+              // insert as sibling after siteNode
+              final Node nextSibling = siteNode.getNextSibling();
+              if (nextSibling != null) {
+                siteNode.getParentNode().insertBefore(imported, nextSibling);
+              } else {
+                siteNode.getParentNode().appendChild(imported);
+              }
+              break;
+            default:
+              // siteNode is parent - make last child
+              siteNode.appendChild(imported);
+          }
+        }
       }
+    } catch (final XPathExpressionException e) {
+      errors++;
+      eventLogger.error("Invalid XPath expression for add; {1}", xpathExpression);
+    }
+  }
+
+  public void addEventLogger(OutputStream jsonOutputStream) throws Exception {
+    if (jsonOutputStream != null) {
+      final EventListener jsonEventLogger = factory.getInstance("JSON");
+      jsonEventLogger.setResource(jsonOutputStream);
+      eventLogger.addEventListener(jsonEventLogger);
     }
   }
 
@@ -208,61 +256,74 @@ public class XmlMerge {
     return db.parse(is);
   }
 
-  private void remove(final Document doc, XPath xpathEvaluator, Element patchOpElement)
-      throws XPathExpressionException, DOMException {
-    String xpathExpression = patchOpElement.getAttribute("sel");
-    Node node = (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
-    if (node != null) {
-      Node parent = node.getParentNode();
-      if (parent != null) {
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-          if (children.item(i) == node) {
-            parent.removeChild(node);
-            break;
+  private void remove(final Document doc, XPath xpathEvaluator, Element patchOpElement) {
+    final String xpathExpression = patchOpElement.getAttribute("sel");
+    try {
+      final Node node =
+          (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
+      if (node != null) {
+        final Node parent = node.getParentNode();
+        if (parent != null) {
+          final NodeList children = parent.getChildNodes();
+          for (int i = 0; i < children.getLength(); i++) {
+            if (children.item(i) == node) {
+              parent.removeChild(node);
+              break;
+            }
           }
         }
       }
+    } catch (final XPathExpressionException e) {
+      errors++;
+      eventLogger.error("Invalid XPath expression for remove; {0}", xpathExpression);
     }
   }
 
-  private void replace(final Document doc, XPath xpathEvaluator, Element patchOpElement)
-      throws XPathExpressionException, DOMException {
-    String xpathExpression = patchOpElement.getAttribute("sel");
-    String value = patchOpElement.getFirstChild().getNodeValue();
+  private void replace(final Document doc, XPath xpathEvaluator, Element patchOpElement) {
+    final String xpathExpression = patchOpElement.getAttribute("sel");
+    try {
+      final String value = patchOpElement.getFirstChild().getNodeValue();
 
-    Node node = (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
-    if (node == null) {
-      throw new XPathExpressionException(
-          "No target for Xpath expression in 'sel' for replace; " + xpathExpression);
-    }
+      final Node siteNode =
+          (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
+      if (siteNode == null) {
+        errors++;
+        eventLogger.error("Target not found for replace; {0}", xpathExpression);
+      } else {
+        switch (siteNode.getNodeType()) {
+          case Node.ELEMENT_NODE:
+            final NodeList children = siteNode.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+              if (children.item(i).getNodeType() == Node.TEXT_NODE) {
+                children.item(i).setNodeValue(value);
+                return;
+              }
+            }
 
-    switch (node.getNodeType()) {
-      case Node.ELEMENT_NODE:
-        NodeList children = node.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-          if (children.item(i).getNodeType() == Node.TEXT_NODE) {
-            children.item(i).setNodeValue(value);
-            return;
-          }
+            final Text text = doc.createTextNode(value);
+            text.setNodeValue(value);
+            siteNode.appendChild(text);
+            break;
+          case Node.ATTRIBUTE_NODE:
+            siteNode.setNodeValue(value);
+            break;
         }
-
-        Text text = doc.createTextNode(value);
-        text.setNodeValue(value);
-        node.appendChild(text);
-        break;
-      case Node.ATTRIBUTE_NODE:
-        node.setNodeValue(value);
-        break;
+      }
+    } catch (final XPathExpressionException e) {
+      errors++;
+      eventLogger.error("Invalid XPath expression for remove; {0}", xpathExpression);
     }
+  }
 
+  public int getErrors() {
+    return errors;
   }
 
   private void write(Document document, OutputStream outputStream) throws TransformerException {
-    DOMSource source = new DOMSource(document);
-    StreamResult result = new StreamResult(outputStream);
-    TransformerFactory transformerFactory = TransformerFactory.newInstance();
-    Transformer transformer = transformerFactory.newTransformer();
+    final DOMSource source = new DOMSource(document);
+    final StreamResult result = new StreamResult(outputStream);
+    final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+    final Transformer transformer = transformerFactory.newTransformer();
     transformer.setOutputProperty("indent", "yes");
     transformer.transform(source, result);
   }

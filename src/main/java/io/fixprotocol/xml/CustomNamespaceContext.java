@@ -32,7 +32,32 @@ class CustomNamespaceContext implements NamespaceContext {
     namespaces.put("xml", XMLConstants.XML_NS_URI);
     namespaces.put("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
   }
-  
+
+  @Override
+  public String getNamespaceURI(String prefix) {
+    if (prefix == null) {
+      throw new NullPointerException("Null prefix");
+    }
+    final String uri = namespaces.get(prefix);
+    if (uri != null) {
+      return uri;
+    } else {
+      return XMLConstants.NULL_NS_URI;
+    }
+  }
+
+  // This method isn't necessary for XPath processing.
+  @Override
+  public String getPrefix(String uri) {
+    throw new UnsupportedOperationException();
+  }
+
+  // This method isn't necessary for XPath processing either.
+  @Override
+  public Iterator<String> getPrefixes(String uri) {
+    throw new UnsupportedOperationException();
+  }
+
   public void populate(Document doc) {
     final Element baselineRoot = doc.getDocumentElement();
     final NamedNodeMap rootAttributes = baselineRoot.getAttributes();
@@ -47,28 +72,6 @@ class CustomNamespaceContext implements NamespaceContext {
         register(XMLConstants.DEFAULT_NS_PREFIX, attr.getValue());
       }
     }
-  }
-
-  public String getNamespaceURI(String prefix) {
-    if (prefix == null) {
-      throw new NullPointerException("Null prefix");
-    }
-    String uri = namespaces.get(prefix);
-    if (uri != null) {
-      return uri;
-    } else {
-      return XMLConstants.NULL_NS_URI;
-    }
-  }
-
-  // This method isn't necessary for XPath processing.
-  public String getPrefix(String uri) {
-    throw new UnsupportedOperationException();
-  }
-
-  // This method isn't necessary for XPath processing either.
-  public Iterator<String> getPrefixes(String uri) {
-    throw new UnsupportedOperationException();
   }
 
   public void register(String prefix, String uri) {

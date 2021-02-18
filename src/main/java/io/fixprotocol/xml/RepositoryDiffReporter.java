@@ -20,9 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-
-import javax.xml.transform.TransformerConfigurationException;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -30,26 +29,19 @@ import org.w3c.dom.NodeList;
 
 /**
  * Generates an HTML report of FIX Repository differences
- * 
+ *
  * @author Don Mendelson
  *
  */
 public class RepositoryDiffReporter extends XmlDiff {
-  /**
-   * @throws TransformerConfigurationException if a configuration error occurs
-   */
-  public RepositoryDiffReporter() throws TransformerConfigurationException {
-    super();
-  }
-
   static class HtmlDiffListener implements XmlDiffListener {
 
-    private boolean headerGenerated = false;
     private boolean firstRow = true;
+    private boolean headerGenerated = false;
     private final OutputStreamWriter out;
 
     /**
-     * @param out
+     * @param out output stream
      */
     public HtmlDiffListener(OutputStream out) {
       this.out = new OutputStreamWriter(out);
@@ -76,15 +68,14 @@ public class RepositoryDiffReporter extends XmlDiff {
               out.write(
                   String.format("<td>%s</td><td>%s</td><td>Add</td><td></td><td>%s</td><td>%s",
                       XpathUtil.getParentLocalName(t.getXpath()),
-                      XpathUtil.getParentPredicate(t.getXpath()), 
-                      t.getValue().getNodeName(),
+                      XpathUtil.getParentPredicate(t.getXpath()), t.getValue().getNodeName(),
                       t.getValue().getNodeValue()));
             } else {
-              Element element = (Element) t.getValue();
+              final Element element = (Element) t.getValue();
               String text = null;
-              NodeList children = element.getChildNodes();
+              final NodeList children = element.getChildNodes();
               for (int i = 0; i < children.getLength(); i++) {
-                Node child = children.item(i);
+                final Node child = children.item(i);
                 if (Node.TEXT_NODE == child.getNodeType()) {
                   text = child.getNodeValue();
                   break;
@@ -94,10 +85,8 @@ public class RepositoryDiffReporter extends XmlDiff {
               out.write(
                   String.format("<td>%s</td><td>%s</td><td>Add</td><td>%s</td><td>%s</td><td>%s",
                       XpathUtil.getElementLocalName(t.getXpath()),
-                      XpathUtil.getElementPredicate(t.getXpath()), 
-                      t.getValue().getNodeName(),
-                      element.getAttribute("name"),
-                      text != null ? text : ""));
+                      XpathUtil.getElementPredicate(t.getXpath()), t.getValue().getNodeName(),
+                      element.getAttribute("name"), text != null ? text : ""));
 
             }
             break;
@@ -109,11 +98,11 @@ public class RepositoryDiffReporter extends XmlDiff {
                       XpathUtil.getParentPredicate(t.getXpath()), t.getValue().getNodeName(),
                       t.getValue().getNodeValue()));
             } else if (t.getValue() instanceof Element) {
-              Element element = (Element) t.getValue();
+              final Element element = (Element) t.getValue();
               String text = null;
-              NodeList children = element.getChildNodes();
+              final NodeList children = element.getChildNodes();
               for (int i = 0; i < children.getLength(); i++) {
-                Node child = children.item(i);
+                final Node child = children.item(i);
                 if (Node.TEXT_NODE == child.getNodeType()) {
                   text = child.getNodeValue();
                   break;
@@ -130,7 +119,7 @@ public class RepositoryDiffReporter extends XmlDiff {
             out.write(
                 String.format("<td>%s</td><td>%s</td><td>Remove</td><td>%s</td><td>%s</td><td>",
                     XpathUtil.getParentLocalName(t.getXpath()),
-                    XpathUtil.getParentPredicate(t.getXpath()), 
+                    XpathUtil.getParentPredicate(t.getXpath()),
                     XpathUtil.getElementLocalName(t.getXpath()),
                     XpathUtil.getElementPredicate(t.getXpath())));
             break;
@@ -139,7 +128,7 @@ public class RepositoryDiffReporter extends XmlDiff {
             break;
         }
 
-      } catch (IOException e) {
+      } catch (final IOException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
@@ -168,25 +157,30 @@ public class RepositoryDiffReporter extends XmlDiff {
     }
   }
 
+  private static final Logger logger = LogManager.getLogger();
+
   /**
    * Compares two XML files and produces an HTML report. By default, report is sent to console.
-   * 
+   *
    * @param args file names of two XML files to compare and optional name of difference file. If
    *        diff file is not provided, then output goes to console.
    * @throws Exception if an IO or parsing error occurs
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     if (args.length < 2) {
       usage();
+      System.exit(1);
     } else {
-      RepositoryDiffReporter tool = new RepositoryDiffReporter();
+      final RepositoryDiffReporter tool = new RepositoryDiffReporter();
       try (
-              HtmlDiffListener aListener = new HtmlDiffListener(
-                      args.length > 2 ? new FileOutputStream(args[2]) : System.out);
-              InputStream is1 = new FileInputStream(args[0]);
-              InputStream is2 = new FileInputStream(args[1])) {
+          HtmlDiffListener aListener =
+              new HtmlDiffListener(args.length > 2 ? new FileOutputStream(args[2]) : System.out);
+          InputStream is1 = new FileInputStream(args[0]);
+          InputStream is2 = new FileInputStream(args[1])) {
         tool.setListener(aListener);
         tool.diff(is1, is2);
+      } catch (final Exception e) {
+        logger.fatal("RepositoryDiffReporter failed", e);
       }
     }
   }
