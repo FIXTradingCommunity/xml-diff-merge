@@ -65,7 +65,7 @@ public class XmlMerge {
    * Merges a baseline XML file with a differences file to produce a second XML file
    *
    * @param args three file names: baseline XML file, diff file, name of second XML to produce
-   * Optionally, argument '-e <event-filename>' can direct errors to a JSON file for UI rendering.
+   * Optionally, argument '-e <event-filename>' can direct errors to a JSON file suitable for UI rendering.
    *
    */
   public static void main(String[] args) {

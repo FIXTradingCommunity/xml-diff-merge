@@ -18,7 +18,10 @@ The XmlDiff utility compares two XML files and generates a third file that repre
 To run the difference utility, run this command line:
 
 ```
-java io.fixprotocol.xml.XmlDiff <in-file1> <in-file2> [output-file]
+java -jar diff-merge-1.5.1-SNAPSHOT-jar-with-dependencies.jar <arguments>
+
+Usage: XmlDiff <xml-file1> <xml-file2> [diff-file] [-e event-file] [-u|-o]
+diff-file defaults to console   -u=unordered elements   -o=ordered elements
 ```
 If the output file is not provided, then results go to the console.
 
