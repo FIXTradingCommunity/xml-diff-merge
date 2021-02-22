@@ -91,11 +91,12 @@ public class XmlDiff {
    *
    * @param args file names of two XML files to compare and optional name of difference file. If
    *        diff file is not provided, then output goes to console.
-   *        
-   *        Optionally, argument '-u' treats XML nodes as unordered so moves among children are not considered significant. Otherwise,
-   *        a move will result in an add and a remove operation.
-   *        
-   *        Optionally, argument '-e <event-filename>' can direct errors to a JSON file suitable for UI rendering.
+   * 
+   *        Optionally, argument '-u' treats XML nodes as unordered so moves among children are not
+   *        considered significant. Otherwise, a move will result in an add and a remove operation.
+   * 
+   *        Optionally, argument '-e <event-filename>' can direct errors to a JSON file suitable for
+   *        UI rendering.
    */
   public static void main(String[] args) {
     if (args.length < 2) {
@@ -123,11 +124,12 @@ public class XmlDiff {
               out = new FileOutputStream(args[i]);
           }
         }
-        final PatchOpsListener aListener = new PatchOpsListener(out);
-        tool.setListener(aListener);
+
         tool.addEventLogger(eventFilename != null ? new FileOutputStream(eventFilename) : null);
+        final PatchOpsListener aListener = new PatchOpsListener(out, tool.getEventLogger());
+        tool.setListener(aListener);
         tool.diff(is1, is2);
-        System.exit(0);
+        tool.eventLogger.info("XmlDiff completed");
       } catch (final Exception e) {
         logger.fatal("XmlDiff failed", e);
         System.exit(1);
@@ -158,8 +160,8 @@ public class XmlDiff {
     final EventListener logEventLogger = factory.getInstance("LOG4J");
     try {
       logEventLogger.setResource(logger);
-    } catch (final Exception e) {
       eventLogger.addEventListener(logEventLogger);
+    } catch (final Exception e) {
       e.printStackTrace();
     }
   }
@@ -191,7 +193,6 @@ public class XmlDiff {
         System.exit(1);
       }
       listener.close();
-      eventLogger.info("XmlDiff complete");
     }
   }
 
@@ -227,6 +228,10 @@ public class XmlDiff {
     } finally {
       listener.close();
     }
+  }
+
+  public EventListener getEventLogger() {
+    return eventLogger;
   }
 
   /**
@@ -413,17 +418,18 @@ public class XmlDiff {
       if (child2 == null || Node.TEXT_NODE != child2.getNodeType()) {
         listener.accept(Event.remove(XpathUtil.getFullXPath(child1)));
       } else {
-        final int valueCompare =
-            child1.getNodeValue().trim().compareTo(child2.getNodeValue().trim());
+        final int valueCompare = stripWhitespace(child1.getNodeValue())
+            .compareTo(stripWhitespace(child2.getNodeValue()));
 
         if (valueCompare != 0) {
-          listener.accept(Event.replace(XpathUtil.getFullXPath(element1), child2, child1));
+          listener.accept(Event.replace(XpathUtil.getFullXPath(child1), child2, child1));
         } else {
           return true;
         }
       }
-    } else if (child2 != null && Node.TEXT_NODE == child2.getNodeType()) {
-      listener.accept(Event.add(XpathUtil.getFullXPath(element2), child2, append));
+    } else if (child2 != null && Node.TEXT_NODE == child2.getNodeType()
+        && stripWhitespace(child2.getNodeValue()).length() > 0) {
+      listener.accept(Event.add(XpathUtil.getFullXPath(child2), child2, append));
     }
     return false;
   }
@@ -464,6 +470,10 @@ public class XmlDiff {
     }
     nodeArray.sort(Comparator.comparing(Node::getNodeName));
     return nodeArray;
+  }
+
+  private String stripWhitespace(String str) {
+    return str.replaceAll("\\s", "");
   }
 
 }

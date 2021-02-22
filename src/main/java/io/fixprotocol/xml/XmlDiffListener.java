@@ -53,8 +53,9 @@ public interface XmlDiffListener extends Consumer<XmlDiffListener.Event>, AutoCl
      * @param pos position to add or insert new Node
      */
     static Event add(String xpath, Node value, Pos pos) {
-      return new Event(Difference.ADD, xpath, Objects.requireNonNull(value, "Node to add missing"),
-          null, pos);
+      return new Event(Difference.ADD,
+          Objects.requireNonNull(xpath, "XPath target for add missing"),
+          Objects.requireNonNull(value, "Node to add missing"), null, pos);
     }
 
     /**

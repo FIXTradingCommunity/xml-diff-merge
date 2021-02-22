@@ -236,7 +236,7 @@ public class XmlMerge {
       }
     } catch (final XPathExpressionException e) {
       errors++;
-      eventLogger.error("Invalid XPath expression for add; {1}", xpathExpression);
+      eventLogger.error("Invalid XPath expression for add; {0}", xpathExpression);
     }
   }
 
@@ -305,6 +305,7 @@ public class XmlMerge {
             siteNode.appendChild(text);
             break;
           case Node.ATTRIBUTE_NODE:
+          case Node.TEXT_NODE:
             siteNode.setNodeValue(value);
             break;
         }

@@ -125,6 +125,7 @@ final class XpathUtil {
         break;
       case Node.ELEMENT_NODE:
       case Node.DOCUMENT_NODE:
+      case Node.TEXT_NODE:
         parent = n.getParentNode();
         break;
       default:
@@ -191,6 +192,9 @@ final class XpathUtil {
         case Node.ATTRIBUTE_NODE:
           buffer.append("/@");
           buffer.append(node.getNodeName());
+          break;
+        case Node.TEXT_NODE:
+          buffer.append("/text()[1]");
           break;
       }
     }

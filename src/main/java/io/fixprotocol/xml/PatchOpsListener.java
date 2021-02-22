@@ -34,6 +34,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
+import io.fixprotocol.orchestra.event.EventListener;
 
 /**
  * Writes XML diffs as patch operations specified by IETF RFC 5261
@@ -45,28 +46,31 @@ import org.w3c.dom.Text;
 public class PatchOpsListener implements XmlDiffListener {
 
   private final OutputStreamWriter writer;
-  private final Document document;
+  private final Document diffDocument;
   private final Element rootElement;
   private final AtomicBoolean isClosed = new AtomicBoolean();
+  private final EventListener eventLogger;
 
   /**
    * Constructs a listener with an output stream
+   * @param eventListener 
    *
    * @throws IOException if an IO error occurs
    * @throws ParserConfigurationException if a configuration error occurs
    * @throws TransformerConfigurationException if a configuration error occurs
    *
    */
-  public PatchOpsListener(OutputStream out)
+  public PatchOpsListener(OutputStream out, EventListener eventListener)
       throws IOException, ParserConfigurationException, TransformerConfigurationException {
+    this.eventLogger = eventListener;
     writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
 
     final DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     dbFactory.setNamespaceAware(true);
     final DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-    document = dBuilder.newDocument();
-    rootElement = document.createElement("diff");
-    document.appendChild(rootElement);
+    diffDocument = dBuilder.newDocument();
+    rootElement = diffDocument.createElement("diff");
+    diffDocument.appendChild(rootElement);
   }
 
   /*
@@ -79,14 +83,14 @@ public class PatchOpsListener implements XmlDiffListener {
 
     switch (t.getDifference()) {
       case ADD:
-        final Element addElement = document.createElement("add");
+        final Element addElement = diffDocument.createElement("add");
         rootElement.appendChild(addElement);
 
         if (t.getValue() instanceof Attr) {
           // add attribute
           addElement.setAttribute("sel", t.getXpath());
           addElement.setAttribute("type", "@" + t.getValue().getNodeName());
-          final Text textNode = document.createTextNode(t.getValue().getNodeValue());
+          final Text textNode = diffDocument.createTextNode(t.getValue().getNodeValue());
           addElement.appendChild(textNode);
         } else if (t.getValue() instanceof Element) {
           // add element
@@ -95,30 +99,38 @@ public class PatchOpsListener implements XmlDiffListener {
             addElement.setAttribute("pos", t.getPos().toString());
           }
           // will import child text node if it exists (deep copy)
-          final Element newValue = (Element) document.importNode(t.getValue(), true);
+          final Element newValue = (Element) diffDocument.importNode(t.getValue(), true);
           addElement.appendChild(newValue);
+        } else if (t.getValue() instanceof Text) {
+          addElement.setAttribute("sel", t.getXpath());
+          Node text = diffDocument.importNode(t.getValue(), false);
+          addElement.appendChild(text);
+        } else {
+          eventLogger.error("Unhandled node type {0} for add", t.getValue().getNodeType());
         }
 
         break;
       case REPLACE:
-        final Element replaceElement = document.createElement("replace");
+        final Element replaceElement = diffDocument.createElement("replace");
         rootElement.appendChild(replaceElement);
 
         if (t.getValue() instanceof Attr) {
           // replace attribute
           replaceElement.setAttribute("sel", t.getXpath());
-          final Text textNode = document.createTextNode(t.getValue().getNodeValue());
+          final Text textNode = diffDocument.createTextNode(t.getValue().getNodeValue());
           replaceElement.appendChild(textNode);
-        } else {
+        } else if (t.getValue() instanceof Element || t.getValue() instanceof Text) {
           // replace element
           replaceElement.setAttribute("sel", t.getXpath());
           // will import child text node if it exists
-          final Node newValue = document.importNode(t.getValue(), true);
+          final Node newValue = diffDocument.importNode(t.getValue(), true);
           replaceElement.appendChild(newValue);
+        } else {
+          eventLogger.error("Unhandled node type {0} for replace", t.getValue().getNodeType());
         }
         break;
       case REMOVE:
-        final Element removeElement = document.createElement("remove");
+        final Element removeElement = diffDocument.createElement("remove");
         rootElement.appendChild(removeElement);
         removeElement.setAttribute("sel", t.getXpath());
         break;
@@ -139,7 +151,7 @@ public class PatchOpsListener implements XmlDiffListener {
       final TransformerFactory transformerFactory = TransformerFactory.newInstance();
       final Transformer transformer = transformerFactory.newTransformer();
       transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-      final DOMSource source = new DOMSource(document);
+      final DOMSource source = new DOMSource(diffDocument);
       final StreamResult result = new StreamResult(writer);
       transformer.transform(source, result);
       writer.close();

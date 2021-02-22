@@ -72,7 +72,6 @@ class CustomLogFactory implements LoggerContextFactory {
 
 public class XmlDiffTest {
 
-  private XmlDiff xmlDiff;
   private XmlMerge xmlMerge;
 
   @BeforeAll
@@ -86,9 +85,7 @@ public class XmlDiffTest {
    */
   @BeforeEach
   public void setUp() throws Exception {
-    xmlDiff = new XmlDiff();
-    
-    xmlMerge = new XmlMerge();
+     xmlMerge = new XmlMerge();
   }
 
   @Test
@@ -96,15 +93,8 @@ public class XmlDiffTest {
 
     final String mergedFilename = "target/test/unorderedmerged.xml";
     final String diffFilename = "target/test/unordereddiff.xml";
-    try (
-        final FileInputStream is1 = new FileInputStream(
-            Thread.currentThread().getContextClassLoader().getResource("DiffTest1.xml").getFile());
-        final FileInputStream is2 = new FileInputStream(Thread.currentThread()
-            .getContextClassLoader().getResource("DiffTest2.xml").getFile())) {
-      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
-      xmlDiff.setAreElementsOrdered(false);
-      xmlDiff.diff(is1, is2);
-    }
+    XmlDiff.main(new String[] {"src/test/resources/DiffTest1.xml", "src/test/resources/DiffTest2.xml", diffFilename, "-u"});
+
 
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -135,15 +125,8 @@ public class XmlDiffTest {
   public void ordered() throws Exception {
     final String mergedFilename = "target/test/orderedmerged.xml";
     final String diffFilename = "target/test/ordereddiff.xml";
-    try (
-        final FileInputStream is1 = new FileInputStream(
-            Thread.currentThread().getContextClassLoader().getResource("DiffTest1.xml").getFile());
-        final FileInputStream is2 = new FileInputStream(Thread.currentThread()
-            .getContextClassLoader().getResource("DiffTest2.xml").getFile())) {
-      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
-      xmlDiff.setAreElementsOrdered(true);
-      xmlDiff.diff(is1, is2);
-    }
+    XmlDiff.main(new String[] {"src/test/resources/DiffTest1.xml", "src/test/resources/DiffTest2.xml", diffFilename});
+
 
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -165,15 +148,8 @@ public class XmlDiffTest {
   @Test
   public void epDiff() throws Exception {
     final String mergedFilename = "target/test/roundtripmerged.xml";
-    final String diffFilename = "target/test/roundtripdiff.xml";
-    try (
-        final FileInputStream is1 = new FileInputStream(Thread.currentThread()
-            .getContextClassLoader().getResource("FixRepository2016EP215.xml").getFile());
-        final FileInputStream is2 = new FileInputStream(Thread.currentThread()
-            .getContextClassLoader().getResource("FixRepository2016EP216.xml").getFile())) {
-      xmlDiff.setListener(new PatchOpsListener(new FileOutputStream(diffFilename)));
-      xmlDiff.diff(is1, is2);
-    }
+    final String diffFilename = "target/test/roundtripdiff.xml";    
+    XmlDiff.main(new String[] {"src/test/resources/FixRepository2016EP215.xml", "src/test/resources/FixRepository2016EP216.xml", diffFilename});
 
     try (
         final FileInputStream is1Baseline = new FileInputStream(Thread.currentThread()
