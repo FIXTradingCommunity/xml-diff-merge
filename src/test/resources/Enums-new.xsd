@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:fm="http://www.fixprotocol.org/FIXML-Latest/METADATA"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <xs:simpleType name="SecurityType_enum_t">
+    <xs:annotation>
+      <xs:documentation>Indicates type of security. Security type enumerations are grouped by Product(460) field value. NOTE: Additional values may be used by mutual agreement of the counterparties.</xs:documentation>
+      <xs:appinfo>
+        <fm:Xref Protocol="FIX" name="SecurityType" ComponentType="Field" Tag="167"
+                 Type="String"
+                 AbbrName="SecTyp"/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <fm:EnumDoc value="EUSUPRA">Euro Supranational Coupons *</fm:EnumDoc>
+        <fm:EnumDoc value="FOR">Foreign Exchange Contract</fm:EnumDoc>
+        <fm:EnumDoc value="CS">Common Stock</fm:EnumDoc>
+        <fm:EnumDoc value="REPO">Repurchase</fm:EnumDoc>
+        <fm:EnumDoc value="CORP">Corporate Bond</fm:EnumDoc>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:simpleType>
+</xs:schema>

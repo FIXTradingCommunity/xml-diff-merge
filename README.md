@@ -31,7 +31,7 @@ Optionally, argument `-u` treats XML nodes as unordered so moves among children 
 
 ## Merge
 
-The XmlMerge utility takes a base XML file and a difference file and merges the two to produce an new XML file.
+The XmlMerge utility takes a base XML file and a difference file and merges the two to produce a new XML file.
 
 To run the merge utility, run this command line:
 

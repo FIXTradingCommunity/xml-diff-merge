@@ -108,9 +108,9 @@ public class XmlDiffTest {
 //     remove <fff id="1"/>
 //     add <fff id="3"/>
 //     
-    assertEquals(2, doc.getElementsByTagName("add").getLength());
-    assertEquals(2, doc.getElementsByTagName("replace").getLength());
-    assertEquals(2, doc.getElementsByTagName("remove").getLength());
+    assertEquals(3, doc.getElementsByTagName("add").getLength());
+    assertEquals(1, doc.getElementsByTagName("replace").getLength());
+    assertEquals(3, doc.getElementsByTagName("remove").getLength());
 
     try (
         final FileInputStream is1Baseline = new FileInputStream(
@@ -158,6 +158,13 @@ public class XmlDiffTest {
         final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
       xmlMerge.merge(is1Baseline, isDiff, osMerge);
     }
+  }
+
+  
+  @Test
+  public void xsdDiff() throws Exception {
+    final String diffFilename = "target/test/xsddiff.xml";    
+    XmlDiff.main(new String[] {"src/test/resources/Enums-new.xsd", "src/test/resources/Enums-old.xsd", diffFilename, "-u"});
   }
 
 }

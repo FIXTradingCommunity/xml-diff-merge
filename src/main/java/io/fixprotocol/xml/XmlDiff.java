@@ -79,8 +79,30 @@ public class XmlDiff {
             retv = name1.compareTo(name2);
           }
         }
+        if (retv == 0) {
+          retv = new ElementTextComparator().compare(n1, n2);
+        }
       }
       return retv;
+    }
+  }
+
+  private static final class ElementTextComparator implements Comparator<Element> {
+
+    @Override
+    public int compare(Element o1, Element o2) {
+
+      final Node child1 = o1.getFirstChild();
+      final Node child2 = o2.getFirstChild();
+
+      String text1 =
+          (child1 != null && Node.TEXT_NODE == child1.getNodeType()) ? child1.getNodeValue().trim()
+              : "";
+      String text2 =
+          (child2 != null && Node.TEXT_NODE == child2.getNodeType()) ? child2.getNodeValue().trim()
+              : "";
+
+      return text1.compareTo(text2);
     }
   }
 
@@ -418,8 +440,8 @@ public class XmlDiff {
       if (child2 == null || Node.TEXT_NODE != child2.getNodeType()) {
         listener.accept(Event.remove(XpathUtil.getFullXPath(child1)));
       } else {
-        final int valueCompare = stripWhitespace(child1.getNodeValue())
-            .compareTo(stripWhitespace(child2.getNodeValue()));
+        final int valueCompare =
+            child1.getNodeValue().trim().compareTo(child2.getNodeValue().trim());
 
         if (valueCompare != 0) {
           listener.accept(Event.replace(XpathUtil.getFullXPath(child1), child2, child1));
@@ -428,7 +450,7 @@ public class XmlDiff {
         }
       }
     } else if (child2 != null && Node.TEXT_NODE == child2.getNodeType()
-        && stripWhitespace(child2.getNodeValue()).length() > 0) {
+        && child2.getNodeValue().trim().length() > 0) {
       listener.accept(Event.add(XpathUtil.getFullXPath(child2), child2, append));
     }
     return false;
@@ -470,10 +492,6 @@ public class XmlDiff {
     }
     nodeArray.sort(Comparator.comparing(Node::getNodeName));
     return nodeArray;
-  }
-
-  private String stripWhitespace(String str) {
-    return str.replaceAll("\\s", "");
   }
 
 }
