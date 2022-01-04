@@ -16,7 +16,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>11</java.version>
 		<junit.version>5.8.2</junit.version>
-		<log4j.version>2.17.0</log4j.version>
+		<log4j.version>2.17.1</log4j.version>
 		<orchestra.version>1.7.3</orchestra.version>
 		<saxon.version>10.6</saxon.version>
 		<ignoreSigningInformation>true</ignoreSigningInformation>
