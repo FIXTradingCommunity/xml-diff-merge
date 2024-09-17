@@ -1,0 +1,3 @@
+<diff>
+    <remove sel="/fixr:repository/fixr:components[1]/fixr:component[@id='1003' and @scenario='base']/@added"/>
+</diff>

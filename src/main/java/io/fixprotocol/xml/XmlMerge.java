@@ -35,15 +35,13 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
+import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 import io.fixprotocol.orchestra.event.EventListener;
 import io.fixprotocol.orchestra.event.EventListenerFactory;
 import io.fixprotocol.orchestra.event.TeeEventListener;
+
+import static org.w3c.dom.Node.ATTRIBUTE_NODE;
 
 /**
  * Merges a difference file created by {@link XmlDiff} into a baseline XML file to create a new XML
@@ -262,16 +260,25 @@ public class XmlMerge {
       final Node node =
           (Node) xpathEvaluator.compile(xpathExpression).evaluate(doc, XPathConstants.NODE);
       if (node != null) {
-        final Node parent = node.getParentNode();
-        if (parent != null) {
-          final NodeList children = parent.getChildNodes();
-          for (int i = 0; i < children.getLength(); i++) {
-            if (children.item(i) == node) {
-              parent.removeChild(node);
-              break;
+        if (ATTRIBUTE_NODE == node.getNodeType()) {
+          Attr attr = (Attr) node;
+          Element parent = attr.getOwnerElement();
+          parent.removeAttributeNode(attr);
+        } else {
+          Node parent = node.getParentNode();
+          if (parent != null) {
+            final NodeList children = parent.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+              Node item = children.item(i);
+              if (item == node) {
+                parent.removeChild(node);
+                break;
+              }
             }
           }
         }
+      } else {
+        eventLogger.warn("XPath expression to remove not found; {0}", xpathExpression);
       }
     } catch (final XPathExpressionException e) {
       errors++;
@@ -304,7 +311,7 @@ public class XmlMerge {
             text.setNodeValue(value);
             siteNode.appendChild(text);
             break;
-          case Node.ATTRIBUTE_NODE:
+          case ATTRIBUTE_NODE:
           case Node.TEXT_NODE:
             siteNode.setNodeValue(value);
             break;

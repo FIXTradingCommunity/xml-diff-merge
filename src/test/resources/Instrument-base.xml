@@ -1,0 +1,7 @@
+<fixr:repository xmlns:dcterms="http://purl.org/dc/terms/" xmlns:fixml="http://fixprotocol.io/2024/orchestra/appinfo/fixml" xmlns:fixr="http://fixprotocol.io/2024/orchestra/repository" version="FIX.Latest_EP292" name="FIX.Latest">
+	<fixr:components>
+		<fixr:component id="1003" name="Instrument" scenario="base" added="FIX.Latest">
+			<fixr:fieldRef id="55" name="Symbol"/>
+		</fixr:component>
+	</fixr:components>
+</fixr:repository>
