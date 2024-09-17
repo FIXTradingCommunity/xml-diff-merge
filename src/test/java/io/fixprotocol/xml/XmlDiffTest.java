@@ -34,6 +34,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 class CustomLogFactory implements LoggerContextFactory {
   private final org.apache.logging.log4j.spi.LoggerContext ctx;
@@ -72,12 +74,15 @@ class CustomLogFactory implements LoggerContextFactory {
 
 public class XmlDiffTest {
 
+  private static DocumentBuilder docBuilder;
   private XmlMerge xmlMerge;
 
   @BeforeAll
   public static void setupOnce() throws Exception {
     new File("target/test").mkdirs();
     LogManager.setFactory(new CustomLogFactory());
+    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    docBuilder = docFactory.newDocumentBuilder();
   }
 
   /**
@@ -95,9 +100,6 @@ public class XmlDiffTest {
     final String diffFilename = "target/test/unordereddiff.xml";
     XmlDiff.main(new String[] {"src/test/resources/DiffTest1.xml", "src/test/resources/DiffTest2.xml", diffFilename, "-u"});
 
-
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Document doc = docBuilder.parse(diffFilename);
 
 //     Expectation:
@@ -127,9 +129,6 @@ public class XmlDiffTest {
     final String diffFilename = "target/test/ordereddiff.xml";
     XmlDiff.main(new String[] {"src/test/resources/DiffTest1.xml", "src/test/resources/DiffTest2.xml", diffFilename});
 
-
-    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Document doc = docBuilder.parse(diffFilename);
 
     assertEquals(3, doc.getElementsByTagName("add").getLength());
@@ -160,11 +159,29 @@ public class XmlDiffTest {
     }
   }
 
-  
   @Test
   public void xsdDiff() throws Exception {
     final String diffFilename = "target/test/xsddiff.xml";    
     XmlDiff.main(new String[] {"src/test/resources/Enums-new.xsd", "src/test/resources/Enums-old.xsd", diffFilename, "-u"});
+  }
+
+  @Test
+  public void removeAttribute() throws Exception {
+    final String mergedFilename = "target/test/Instrument-merged.xml";
+    final String diffFilename = "src/test/resources/Instrument-diff.xml";
+    final String baseFilename = "src/test/resources/Instrument-base.xml";
+
+    try (
+        final FileInputStream is1Baseline = new FileInputStream(baseFilename);
+        final FileInputStream isDiff = new FileInputStream(diffFilename);
+        final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
+      xmlMerge.merge(is1Baseline, isDiff, osMerge);
+
+      Document doc = docBuilder.parse(mergedFilename);
+      NodeList elements = doc.getElementsByTagName("fixr:component");
+      Element element = (Element) elements.item(0);
+      assertEquals(0, element.getAttribute("added").length());
+    }
   }
 
 }
