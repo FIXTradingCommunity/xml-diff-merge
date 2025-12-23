@@ -198,37 +198,41 @@ public class XmlMerge {
           }
           ((Element) siteNode).setAttribute(attribute.substring(1), value);
         } else {
-          Element value = null;
-          final NodeList children = patchOpElement.getChildNodes();
-          for (int i = 0; i < children.getLength(); i++) {
-            final Node child = children.item(i);
-            if (Node.ELEMENT_NODE == child.getNodeType()) {
-              value = (Element) child;
-              break;
-            }
-          }
-          final Node imported = doc.importNode(value, true);
+          final Node parent;
+          Node before = null;
           switch (pos) {
             case "prepend":
               // siteNode is parent - make first child
-              siteNode.insertBefore(imported, siteNode.getFirstChild());
+              parent = siteNode;
+              before = siteNode.getFirstChild();
               break;
             case "before":
               // insert as sibling before siteNode
-              siteNode.getParentNode().insertBefore(imported, siteNode);
+              parent = siteNode.getParentNode();
+              before = siteNode;
               break;
             case "after":
               // insert as sibling after siteNode
+              parent = siteNode.getParentNode();
               final Node nextSibling = siteNode.getNextSibling();
               if (nextSibling != null) {
-                siteNode.getParentNode().insertBefore(imported, nextSibling);
-              } else {
-                siteNode.getParentNode().appendChild(imported);
+                before = nextSibling;
               }
               break;
             default:
               // siteNode is parent - make last child
-              siteNode.appendChild(imported);
+              parent = siteNode;
+          }
+
+          final NodeList children = patchOpElement.getChildNodes();
+          for (int i = 0; i < children.getLength(); i++) {
+            final Node child = children.item(i);
+            final Node imported = doc.importNode(child, true);
+            if (before != null) {
+              parent.insertBefore(imported, before);
+            } else {
+              parent.appendChild(imported);
+            }
           }
         }
       }

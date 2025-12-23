@@ -184,4 +184,23 @@ public class XmlDiffTest {
     }
   }
 
+  @Test
+  public void addText() throws Exception {
+    final String mergedFilename = "target/test/add-text-merged.xml";
+    final String diffFilename = "src/test/resources/add-text-diff.xml";
+    final String baseFilename = "src/test/resources/add-text-base.xml";
+
+    try (
+            final FileInputStream isBase = new FileInputStream(baseFilename);
+            final FileInputStream isDiff = new FileInputStream(diffFilename);
+            final FileOutputStream osMerge = new FileOutputStream(mergedFilename)) {
+      xmlMerge.merge(isBase, isDiff, osMerge);
+
+      Document doc = docBuilder.parse(mergedFilename);
+      NodeList elements = doc.getElementsByTagName("label");
+      Element element = (Element) elements.item(0);
+      assertEquals("LABEL", element.getTextContent());
+    }
+  }
+
 }

@@ -436,7 +436,7 @@ public class XmlDiff {
     final Node child1 = element1.getFirstChild();
     final Node child2 = element2.getFirstChild();
 
-    if (child1 != null && Node.TEXT_NODE == child1.getNodeType()) {
+    if (child1 != null && Node.TEXT_NODE == child1.getNodeType() && !child1.getNodeValue().trim().isEmpty()) {
       if (child2 == null || Node.TEXT_NODE != child2.getNodeType()) {
         listener.accept(Event.remove(XpathUtil.getFullXPath(child1)));
       } else {
@@ -451,7 +451,7 @@ public class XmlDiff {
       }
     } else if (child2 != null && Node.TEXT_NODE == child2.getNodeType()
         && child2.getNodeValue().trim().length() > 0) {
-      listener.accept(Event.add(XpathUtil.getFullXPath(child2), child2, append));
+      listener.accept(Event.add(XpathUtil.getFullXPath(child2.getParentNode()), child2, append));
     }
     return false;
   }
